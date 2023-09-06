@@ -1,9 +1,9 @@
-local _G = ShaguTweaks.GetGlobalEnv()
+local _G = _G
 
 local module = ShaguTweaks:register({
   title = "Movable Unit Frames Extended",
-  description = "Party frames, Minimap, Buffs, Weapon Buffs and Debuffs can be moved while <Shift> and <Ctrl> are pressed together. Drag the first (end) buff or debuff to move.",
-  expansions = { ["vanilla"] = true, ["tbc"] = true },
+  description = "Party frames, Minimap, Buffs, Weapon Buffs and Debuffs can be moved while <Shift> and <Ctrl> are pressed together. Drag the first buff or debuff to move.",
+  expansions = { ["tbc"] = true },
   category = "Unit Frames",
   enabled = nil,
 })
@@ -17,9 +17,9 @@ local movables = {
 
 local nonmovables = {
   "Minimap",
-  "BuffButton0", -- buffs
-  "BuffButton16", -- debuffs
-  "TempEnchant1" -- weapon buffs
+  "BuffButton1",
+  "DebuffButton1",
+  "TempEnchant1", -- weapon buffs
 }
 
 module.enable = function(self)
@@ -35,33 +35,36 @@ module.enable = function(self)
     if IsShiftKeyDown() and IsControlKeyDown() then
       if not unlocker.movable then
         for _, frame in pairs(movables) do
-         _G[frame]:SetUserPlaced(true)
-         _G[frame]:SetMovable(true)
-         _G[frame]:EnableMouse(true)
-         _G[frame]:RegisterForDrag("LeftButton")
-         _G[frame]:SetScript("OnDragStart", function() this:StartMoving() end)
-         _G[frame]:SetScript("OnDragStop", function() this:StopMovingOrSizing() end)
+          local frameObj = _G[frame]
+          if frameObj then
+            frameObj:SetUserPlaced(true)
+            frameObj:SetMovable(true)
+            frameObj:EnableMouse(true)
+            frameObj:RegisterForDrag("LeftButton")
+            frameObj:SetScript("OnDragStart", function() frameObj:StartMoving() end)
+            frameObj:SetScript("OnDragStop", function() frameObj:StopMovingOrSizing() end)
+          end
         end
 
         for _, frame in pairs(nonmovables) do
-         _G[frame]:SetMovable(true)
-         _G[frame]:EnableMouse(true)
-         _G[frame]:RegisterForDrag("LeftButton")
+          local frameObj = _G[frame]
+          if frameObj then
+            frameObj:SetMovable(true)
+            frameObj:EnableMouse(true)
+            frameObj:RegisterForDrag("LeftButton")
 
-         if frame == "Minimap" then
-          _G[frame]:GetParent():SetMovable(true)
-          _G[frame]:SetScript("OnDragStart", function()
-            -- this:StartMoving()
-            this:GetParent():StartMoving()
-          end)
-          _G[frame]:SetScript("OnDragStop", function()
-            -- this:StopMovingOrSizing()
-            this:GetParent():StopMovingOrSizing()
-          end)
-         else
-          _G[frame]:SetScript("OnDragStart", function() this:StartMoving() end)
-          _G[frame]:SetScript("OnDragStop", function() this:StopMovingOrSizing() end)
-         end
+            if frame == "Minimap" then
+              frameObj:SetScript("OnDragStart", function()
+                frameObj:StartMoving()
+              end)
+              frameObj:SetScript("OnDragStop", function()
+                frameObj:StopMovingOrSizing()
+              end)
+            else
+              frameObj:SetScript("OnDragStart", function() frameObj:StartMoving() end)
+              frameObj:SetScript("OnDragStop", function() frameObj:StopMovingOrSizing() end)
+            end
+          end
         end
 
         unlocker.movable = true
@@ -69,21 +72,27 @@ module.enable = function(self)
       end
     elseif unlocker.movable then
       for _, frame in pairs(movables) do
-       _G[frame]:SetScript("OnDragStart", function() end)
-       _G[frame]:SetScript("OnDragStop", function() end)
-       _G[frame]:StopMovingOrSizing()
+        local frameObj = _G[frame]
+        if frameObj then
+          frameObj:SetScript("OnDragStart", function() end)
+          frameObj:SetScript("OnDragStop", function() end)
+          frameObj:StopMovingOrSizing()
+        end
       end
 
       for _, frame in pairs(nonmovables) do
-       _G[frame]:SetScript("OnDragStart", function() end)
-       _G[frame]:SetScript("OnDragStop", function() end)
-       _G[frame]:StopMovingOrSizing()
+        local frameObj = _G[frame]
+        if frameObj then
+          frameObj:SetScript("OnDragStart", function() end)
+          frameObj:SetScript("OnDragStop", function() end)
+          frameObj:StopMovingOrSizing()
 
-       if frame == "Minimap" then
-        movedb[_G[frame]:GetParent():GetName()] = {_G[frame]:GetParent():GetLeft(), _G[frame]:GetParent():GetTop()}
-       else
-        movedb[_G[frame]:GetName()] = {_G[frame]:GetLeft(), _G[frame]:GetTop()}
-       end
+          if frame == "Minimap" then
+            movedb[MinimapCluster:GetName()] = {frameObj:GetLeft(), frameObj:GetTop()}
+          else
+            movedb[frameObj:GetName()] = {frameObj:GetLeft(), frameObj:GetTop()}
+          end
+        end
       end      
 
       unlocker.movable = nil
@@ -136,15 +145,18 @@ module.enable = function(self)
 
   -- position nonmovables
   for _, frame in pairs(nonmovables) do
-    if frame == "Minimap" then
-      if movedb[_G[frame]:GetParent():GetName()] then 
-       _G[frame]:GetParent():ClearAllPoints()
-       _G[frame]:GetParent():SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", movedb[_G[frame]:GetParent():GetName()][1], movedb[_G[frame]:GetParent():GetName()][2])
-      end
-    else
-      if movedb[_G[frame]:GetName()] then
-       _G[frame]:ClearAllPoints()
-       _G[frame]:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", movedb[_G[frame]:GetName()][1], movedb[_G[frame]:GetName()][2])
+    local frameObj = _G[frame]
+    if frameObj then
+      if frame == "Minimap" then
+        if movedb[MinimapCluster:GetName()] then 
+          MinimapCluster:ClearAllPoints()
+          MinimapCluster:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", movedb[MinimapCluster:GetName()][1], movedb[MinimapCluster:GetName()][2])
+        end
+      else
+        if movedb[frameObj:GetName()] then
+          frameObj:ClearAllPoints()
+          frameObj:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", movedb[frameObj:GetName()][1], movedb[frameObj:GetName()][2])
+        end
       end
     end
   end
